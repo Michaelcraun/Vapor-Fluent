@@ -28,6 +28,17 @@ func routes(_ app: Application) throws {
         
     }
     
+    // /movies/id DELETE
+    app.delete("movies", ":id") { (req) -> EventLoopFuture<HTTPStatus> in
+        
+        Movie.find(req.parameters.get("id"), on: req.db)
+            .unwrap(or: Abort(.notFound))
+            .flatMap {
+                $0.delete(on: req.db)
+            }.transform(to: .ok)
+        
+    }
+    
     // returns a "Promise", like in JavaScript
     app.post("movies") { (req) -> EventLoopFuture<Movie> in
         
