@@ -15,6 +15,7 @@ public func configure(_ app: Application) throws {
     ), as: .psql)
     
     app.migrations.add(CreateMovie())
+    app.migrations.add(CreateReview())
 
     // register routes
     try routes(app)
