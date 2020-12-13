@@ -4,7 +4,7 @@ import Vapor
 func routes(_ app: Application) throws {
     
     app.get("movies") { req in
-        Movie.query(on: req.db).all()
+        Movie.query(on: req.db).with(\.$reviews).with(\.$actors).all()
     }
     
     // /movies/{ id }
@@ -46,4 +46,42 @@ func routes(_ app: Application) throws {
         return movie.create(on: req.db).map({ movie })
         
     }
+    
+    // Reviews
+    app.post("reviews") { req -> EventLoopFuture<Review> in
+        
+        let review = try req.content.decode(Review.self)
+        return review.create(on: req.db).map({ review })
+        
+    }
+    
+    // Actors
+    app.post("actors") { req -> EventLoopFuture<Actor> in
+        
+        let actor = try req.content.decode(Actor.self)
+        return actor.create(on: req.db).map({ actor })
+        
+    }
+    
+    app.get("actors") { req in
+        Actor.query(on: req.db).with(\.$movies).all()
+    }
+    
+    // Create relation between movie and actor
+    app.post("movie", ":movieID", "actor", ":actorID") { (req) -> EventLoopFuture<HTTPStatus> in
+        
+        let movie = Movie.find(req.parameters.get("movieID"), on: req.db)
+            .unwrap(or: Abort(.notFound))
+        print("Found movie!")
+        
+        let actor = Actor.find(req.parameters.get("actorID"), on: req.db)
+            .unwrap(or: Abort(.notFound))
+        print("Found actor!")
+        
+        return movie.and(actor).flatMap { (movie, actor) in
+            movie.$actors.attach(actor, on: req.db)
+        }.transform(to: .ok)
+        
+    }
+    
 }
